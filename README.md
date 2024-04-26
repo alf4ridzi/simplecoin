@@ -1,3 +1,3 @@
 # simplecoin
-Simplecoin project for school
-we will add README.md
+Simplecoin project for school\n
+we will add README.md later
