@@ -32,7 +32,7 @@ SimpleCoin is a software wallet that works to send money from one person to anot
 2. Import file named 'simplecoin_db.sql' to your PhpMyAdmin
 3. Install Module Python
 ```
-pip install PyQt6 PyQt6-tools PySide6 Flask
+pip install PyQt6 PySide6 Flask qrcode
 ```
 4. Configure config.ini on API folder & edit what you need.
 ```
