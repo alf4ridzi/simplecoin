@@ -58,5 +58,22 @@ python login.py
 ```
 
 ## Gallery
-
+## Login
+![](https://raw.githubusercontent.com/alf4ridzi/simplecoin/main/img/gallery/login.png)
+## Register
+![](https://raw.githubusercontent.com/alf4ridzi/simplecoin/main/img/gallery/register.png)
+## Dashboard
+![](https://raw.githubusercontent.com/alf4ridzi/simplecoin/main/img/gallery/dashboard.png)
+## Send Rec
+![](https://raw.githubusercontent.com/alf4ridzi/simplecoin/main/img/gallery/sendrec.png)
+## Buy Sell
+![](https://raw.githubusercontent.com/alf4ridzi/simplecoin/main/img/gallery/buysell.png)
+## Public Records
+![](https://raw.githubusercontent.com/alf4ridzi/simplecoin/main/img/gallery/publicrecords.png)
+## Transaction History
+![](https://raw.githubusercontent.com/alf4ridzi/simplecoin/main/img/gallery/transactionhistory.png)
+## Deposit
+![](https://raw.githubusercontent.com/alf4ridzi/simplecoin/main/img/gallery/deposit.png)
+## About & Team
+![](https://raw.githubusercontent.com/alf4ridzi/simplecoin/main/img/gallery/about.png)
 
