@@ -6,7 +6,7 @@ import os
 
 def set_config():
     config = ConfigParser()
-    config_file_path = os.path.join(os.path.dirname(__file__), '../config.ini')
+    config_file_path = "config.ini"
     config.read(config_file_path)
 
     return config
