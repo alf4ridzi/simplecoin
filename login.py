@@ -6,7 +6,7 @@ import sys
 from lib import request_api
 from lib.parser_config import get_node
 from typing import Literal
-from PyQt6 import QtCore, QtGui, QtWidgets, QtMultimedia, uic
+from PyQt6 import QtWidgets, uic
 from PyQt6.QtWidgets import QMessageBox
 
 # edit with your own server.

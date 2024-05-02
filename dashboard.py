@@ -7,28 +7,20 @@ import sys
 import urllib3
 import lib.create_qrcode as qrcode
 import os
-from lib import request_api
-from lib import encrypt
+from lib import request_api, parser_config
 from typing import Literal
-from PyQt6.QtWidgets import QMainWindow, QApplication, QLabel, QListWidgetItem, QWidget, QGridLayout, QMessageBox, QInputDialog, QLineEdit, QTableWidgetItem, QTableWidget, QComboBox, QVBoxLayout
-from PyQt6.QtCore import Qt, QSize, QRegularExpression
-from PyQt6.QtGui import QIcon, QPixmap, QFont, QGuiApplication, QDoubleValidator, QColor
+from PyQt6.QtWidgets import QMainWindow, QApplication, QListWidgetItem, QMessageBox, QInputDialog, QLineEdit, QTableWidgetItem, QTableWidget, QComboBox, QVBoxLayout
+from PyQt6.QtCore import Qt, QSize
+from PyQt6.QtGui import QIcon, QPixmap, QGuiApplication, QColor
 from PyQt6 import QtGui
 from dashboard_ui import Ui_MainWindow
 from datetime import datetime
-from colorama import Fore, init
-init()
-
-# kode warna.
-RED = Fore.RED
-RESET = Fore.RESET
-GREEN = Fore.RESET
 
 timeout = urllib3.Timeout(total=3)
 http = urllib3.PoolManager(timeout=timeout)
 
-# edit with your own server.
-NODE = "127.0.0.1:5000"
+# get node
+NODE = parser_config.get_node()
 
 # Define a custom MainWindow class
 class MainWindow(QMainWindow):
@@ -411,8 +403,6 @@ class MainWindow(QMainWindow):
         self._update_transaction_history()
         
     def _get_account_information(self):
-        if not self.username:
-            self.username = "alfaridzi"
         self.account_information = request_api.get_username_information(self.username)
 
     def _set_network_fee(self):
