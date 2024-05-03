@@ -49,16 +49,16 @@ NETWORK_FEE = 0.01
 [ADMINISTRATOR]
 WALLET_NUMBER = 0xnZfn2LseArFTErhL1gwPCPtMCJ4
 ```
-5. Edit API Server in config.ini with your server API
+5. Run main.py on API to run server
+```
+python main.py
+```
+<b> Run Software (Make sure your API is alive & can be connected)</b><br>
+6. Edit API Server in config.ini with your server API
 ```
 [NODE]
 NODE = 127.0.0.1:5000
 ```
-6. Run main.py on API to run server
-```
-python main.py
-```
-<b> Run Software (Make sure your API is connected)</b><br>
 7. Run login.py if you using source code
 ```
 python login.py
