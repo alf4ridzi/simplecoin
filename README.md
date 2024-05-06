@@ -35,6 +35,10 @@ SimpleCoin is a software wallet that works to send money from one person to anot
 ```
 pip install PyQt6 PySide6 Flask qrcode
 ```
+or install from requirements.txt
+```
+pip install -r requirements.txt
+```
 4. Configure config.ini on API folder & edit what you need.
 ```
 [DATABASE]
@@ -63,10 +67,7 @@ NODE = 127.0.0.1:5000
 ```
 python login.py
 ```
-8. Run simplecoin.exe if you want using executable files
-```
-simplecoin.exe
-```
+8. Download simplecoin_exe.zip on release packages and run .exe files if you want using executable files
 
 ## Gallery
 ## Login
