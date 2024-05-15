@@ -7,6 +7,7 @@ from lib import request_api
 from lib.parser_config import get_node
 from typing import Literal
 from PyQt6 import QtWidgets, uic
+from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QMessageBox
 
 # edit with your own server.
@@ -25,43 +26,31 @@ class Login(QtWidgets.QMainWindow):
         self.username = None
         self.password = None
 
-    def show_dialog(self, type: Literal['cricital', 'information', 'warning'] = "cricital", title: str = "Default title", message: str = "Unknown", button: QMessageBox.StandardButton = QMessageBox.StandardButton.Ok):
-        if type == "cricital":
-            show = QMessageBox.critical(
-                self,
-                title,
-                message,
-                button
-            )
-
-            return show
+    def show_dialog(self, tipe: Literal['critical', 'information', 'warning'] = "critical", title: str = "Default title", message: str = "Unknown", button: QMessageBox.StandardButton = QMessageBox.StandardButton.Ok):
+        msg_box = QMessageBox(parent=self)
+        print(tipe)
+        if tipe == "critical":
+            msg_box.setIcon(QMessageBox.Icon.Critical)
+        elif tipe == "warning":
+            msg_box.setIcon(QMessageBox.Icon.Warning)
+        elif tipe == "information":
+            msg_box.setIcon(QMessageBox.Icon.Information)
+        msg_box.setWindowTitle(title)
+        msg_box.setText(message)
+        msg_box.setStandardButtons(button)
+        # Set the window flag to make the message box stay on top
+        msg_box.setWindowFlags(msg_box.windowFlags() | Qt.WindowType.WindowStaysOnTopHint)
         
-        elif type == "warning":
-            show = QMessageBox.warning(
-                self,
-                title,
-                message,
-                button
-            )
-
-            return show
         
-        elif type == "information":
-            show = QMessageBox.information(
-                self,
-                title,
-                message,
-                button
-            )
-
-            return show
-
+        # Show the message box and return the result
+        return msg_box.exec()
+    
     def login(self):
         
         self.username = self.usernameInput.toPlainText()
         self.password = self.passwordInput.text()
         if not self.username or not self.password:
-            self.show_dialog(type="cricital", title="Not Valid", message="Username Or Password Cannot Empty", button=QMessageBox.StandardButton.Ok)
+            self.show_dialog(tipe="critical", title="Not Valid", message="Username Or Password Cannot Empty", button=QMessageBox.StandardButton.Ok)
         else:
             max_att = 3
             if self.attempts < max_att:
@@ -69,7 +58,7 @@ class Login(QtWidgets.QMainWindow):
                     self.switch_to_dashboard(self.username)
                 self.attempts += 1
             else:
-                show = self.show_dialog(type='cricital', title="Cricital", message="Max login attempts reached", button=QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Close)
+                show = self.show_dialog(tipe='critical', title="critical", message="Max login attempts reached", button=QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Close)
 
                 if show == QMessageBox.StandardButton.Close:
                     self.close()
@@ -79,11 +68,11 @@ class Login(QtWidgets.QMainWindow):
     def send_login_request(self, username: str, password: str):
         send_login = request_api.check_valid_account(username, password)
         if type(send_login) != bool:
-            show = self.show_dialog(type='cricital', title="Failed Login", message=send_login)
+            show = self.show_dialog(tipe='critical', title="Failed Login", message=send_login)
             return False
         if send_login:
             return True
-        show = self.show_dialog(type='cricital', title="Cricital", message="Username/Password incorrect", button=QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Close)
+        show = self.show_dialog(tipe='critical', title="critical", message="Username/Password incorrect", button=QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Close)
         return False
 
     def check_server(self):
@@ -91,15 +80,15 @@ class Login(QtWidgets.QMainWindow):
         #     resp = http.request("GET", NODE).status
         #     if resp == 200:
         #         return True
-        #     show = self.show_dialog(type='cricital', title="Server ERROR!!", message="Cannot connect to server")
+        #     show = self.show_dialog(tipe='critical', title="Server ERROR!!", message="Cannot connect to server")
         # except Exception as e:
         #     print(e)
-        #     show = self.show_dialog(type='cricital', title="Server ERROR!!", message="Cannot connect to server")
+        #     show = self.show_dialog(tipe='critical', title="Server ERROR!!", message="Cannot connect to server")
         #     return False
         if request_api.check_server():
             return True
         else:
-            show = self.show_dialog(type='cricital', title="Server ERROR!!", message="Cannot connect to server")
+            show = self.show_dialog(tipe='critical', title="Server ERROR!!", message="Cannot connect to server")
 
     def signup(self):
         self.close()
@@ -141,25 +130,25 @@ class Register(Login):
             if self.check_username(username):
                 if password == password_verif:
                     if len(password) < 8:
-                        show = self.show_dialog(type='cricital', title='Input Error', message='Minimum password is 8 character')
+                        show = self.show_dialog(tipe='critical', title='Input Error', message='Minimum password is 8 character')
                     else:
                         if self.create_user(username, password):
-                            show = self.show_dialog(type='information', title='Success', message='Success create account. back to login page ?', button=QMessageBox.StandardButton.Ok|QMessageBox.StandardButton.Close)
+                            show = self.show_dialog(tipe='information', title='Success', message='Success create account. back to login page ?', button=QMessageBox.StandardButton.Ok|QMessageBox.StandardButton.Close)
                             if show == QMessageBox.StandardButton.Ok:
                                 self.loginpage()
                         else:
-                            show = self.show_dialog(type='cricital', title='Error', message='Failed create account')
+                            show = self.show_dialog(tipe='critical', title='Error', message='Failed create account')
                 else:
-                    show = self.show_dialog(type='cricital', title='Error', message='Password dont match')
+                    show = self.show_dialog(tipe='critical', title='Error', message='Password dont match')
             else:
-                show = self.show_dialog(type='cricital', title='Error', message='Username already exist')
+                show = self.show_dialog(tipe='critical', title='Error', message='Username already exist')
                 self.usernameInput.clear()
         else:
-            show = self.show_dialog(type='cricital', title='Error', message='Username or password cannot empty')
+            show = self.show_dialog(tipe='critical', title='Error', message='Username or password cannot empty')
     def check_username(self, username):
         check_username = request_api.check_username(username)
         if type(check_username) != bool:
-            self.show_dialog(type='cricital', title='Error', message=check_username)
+            self.show_dialog(tipe='critical', title='Error', message=check_username)
             return False
         if check_username:
             return True
@@ -168,7 +157,7 @@ class Register(Login):
     def create_user(self, username, password):
         create_user = request_api.create_user(username, password)
         if type(create_user) != bool:
-            self.show_dialog(type='cricital', title='Error', message=create_user)
+            self.show_dialog(tipe='critical', title='Error', message=create_user)
             return False
         if create_user:
             return True
