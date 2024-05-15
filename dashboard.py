@@ -185,7 +185,7 @@ class MainWindow(QMainWindow):
         amount_text = self.ui.amount_deposit.text()
         wallet_selected = str(self.combobox.currentText())
         if not amount_text:
-            self.show_dialog(type='cricital', title="Amount error.", message="Please enter amount correctly.")
+            self.show_dialog(type='critical', title="Amount error.", message="Please enter amount correctly.")
             return
         password = self.show_dialog('input')
         if password:
@@ -195,7 +195,7 @@ class MainWindow(QMainWindow):
                 self.show_dialog('information', title="Deposit success", message=f"Deposit {amount}$ Success to your account.")
                 self._set_information()
             else:
-                self.show_dialog('cricital', title="Deposit failed", message=f"Deposit Failed! Please try again.")
+                self.show_dialog('critical', title="Deposit failed", message=f"Deposit Failed! Please try again.")
     
     # update public records
     def _update_public_records(self, wallet_address: str = None):
@@ -299,7 +299,7 @@ class MainWindow(QMainWindow):
         elif method == 'SELL':
             amount = self.ui.spend_sell_input.text()
         if not amount:
-            self.show_dialog('cricital', title="Input error!.", message="Please enter the balance correctly!")
+            self.show_dialog('critical', title="Input error!.", message="Please enter the balance correctly!")
             return
         amount = float(amount)
         password = self.show_dialog(type='input')
@@ -313,9 +313,9 @@ class MainWindow(QMainWindow):
                     message_text = f"Success selling {amount}$SPC Worth of {amount} $DOLLAR.\n\nMore Details : {NODE}/{buy_sell['information']['transaction_id']}"
                 self.show_dialog(type='information', title='Success buy SimpleCoin', message=message_text)
             else:
-                self.show_dialog(type='cricital', title="Transaction Failed.", message=f"Failed {'buy' if method == 'BUY' else 'sell'} simplecoin\n{buy_sell['message']}")
+                self.show_dialog(type='critical', title="Transaction Failed.", message=f"Failed {'buy' if method == 'BUY' else 'sell'} simplecoin\n{buy_sell['message']}")
         else:
-            self.show_dialog(type='cricital', title="Failed input password", message="Failed to input password")
+            self.show_dialog(type='critical', title="Failed input password", message="Failed to input password")
 
         self._set_information()
         # clear
@@ -351,35 +351,14 @@ class MainWindow(QMainWindow):
             return
 
     # show pesan dialog 
-    def show_dialog(self, type: Literal['cricital', 'information', 'warning', 'input'] = "cricital", title: str = "Default title", message: str = "Unknown", button: QMessageBox.StandardButton = QMessageBox.StandardButton.Ok):
-        if type == "cricital":
-            show = QMessageBox.critical(
-                self,
-                title,
-                message,
-                button
-            )
-
-            return show
-        
+    def show_dialog(self, type: Literal['critical', 'information', 'warning', 'input'] = "critical", title: str = "Default title", message: str = "Unknown", button: QMessageBox.StandardButton = QMessageBox.StandardButton.Ok):
+        msg_box = QMessageBox(parent=self)
+        if type == "critical":
+            msg_box.setIcon(QMessageBox.Icon.Critical)
         elif type == "warning":
-            show = QMessageBox.warning(
-                self,
-                title,
-                message,
-                button
-            )
-
-            return show
-        
+            msg_box.setIcon(QMessageBox.Icon.Warning)
         elif type == "information":
-            show = QMessageBox.information(
-                self,
-                title,
-                message,
-                button
-            )
-
+            msg_box.setIcon(QMessageBox.Icon.Information)
         # input dialog
         elif type == "input":
             dialog = QInputDialog(self)
@@ -390,7 +369,17 @@ class MainWindow(QMainWindow):
             if dialog.exec() == QInputDialog.DialogCode.Accepted:
                 return dialog.textValue()
             return None
-        return show
+
+        msg_box.setWindowTitle(title)
+        msg_box.setText(message)
+        msg_box.setStandardButtons(button)
+        # Set the window flag to make the message box stay on top
+        msg_box.setWindowFlags(msg_box.windowFlags() | Qt.WindowType.WindowStaysOnTopHint)
+        
+        # Show the message box and return the result
+        return msg_box.exec()
+
+        
         
     def _set_information(self):
         # refresh or set information to account
@@ -429,28 +418,28 @@ class MainWindow(QMainWindow):
         getNote = self.ui.note_input.text()
 
         if not getWalletTujuan:
-            self.show_dialog("cricital", "Wallet address empty", message="Destination wallet cannot be empty")
+            self.show_dialog("critical", "Wallet address empty", message="Destination wallet cannot be empty")
             return
         if not getAmount:
-            self.show_dialog("cricital", "Amount cannot empty", message="Please fill in the amount you want to send")
+            self.show_dialog("critical", "Amount cannot empty", message="Please fill in the amount you want to send")
             return
         if not getNote:
             getNote = ''
         
         if getWalletTujuan == self.wallet_number:
-            self.show_dialog("cricital", "Address Error", message="Can't send money to your own wallet address.")
+            self.show_dialog("critical", "Address Error", message="Can't send money to your own wallet address.")
             return
         
         try:
             mountFloat = float(getAmount)
         except:
-            self.show_dialog("cricital", "Amount error", message="Please input the amount correctly")
+            self.show_dialog("critical", "Amount error", message="Please input the amount correctly")
             self.ui.amount_input.clear()
             return
 
         add_network_fee = mountFloat + self.NETWORK_FEE
         if add_network_fee > self.simplecoin_balance:
-            self.show_dialog("cricital", "Amount error", message="Amount not enough to make transaction")
+            self.show_dialog("critical", "Amount error", message="Amount not enough to make transaction")
             self.ui.amount_input.clear()
             return
         
@@ -479,9 +468,9 @@ class MainWindow(QMainWindow):
                 self.ui.amount_input.clear()
                 self.ui.note_input.clear()
             else:
-                self.show_dialog('cricital', title='Transaction Failed', message=send_money)
+                self.show_dialog('critical', title='Transaction Failed', message=send_money)
         else:
-            self.show_dialog('cricital', title='Transaction Failed', message=f'Transfer money to {wallet_tujuan} Failed!. Please check the wallet number again.')
+            self.show_dialog('critical', title='Transaction Failed', message=f'Transfer money to {wallet_tujuan} Failed!. Please check the wallet number again.')
         
     def address_copy_to_clipboard(self):
         try:
@@ -489,7 +478,7 @@ class MainWindow(QMainWindow):
             clipboard.setText(self.wallet_number)
             self.show_dialog('information', title='Success', message='Success copy to clipboard', button=QMessageBox.StandardButton.Ok)
         except:
-            self.show_dialog('cricital', title='Error', message='Error copy to clipboard', button=QMessageBox.StandardButton.Ok)
+            self.show_dialog('critical', title='Error', message='Error copy to clipboard', button=QMessageBox.StandardButton.Ok)
             
     def _get_wallet_number(self) -> str:
         return self.account_information['wallet_number']
