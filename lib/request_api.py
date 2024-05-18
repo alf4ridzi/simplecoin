@@ -25,8 +25,9 @@ def deposit(username: str, password: str, amount: float, wallet):
 
     data = json.dumps(data).encode('utf-8')
     try:
-        resp = http.request("POST", NODE+"/deposit", headers=headers, body=data).json()
-        return resp
+        resp = http.request("POST", NODE+"/deposit", headers=headers, body=data).data.decode('utf8')
+        convert_to_json = json.loads(resp)
+        return convert_to_json
     except:
         return {
             'success': False,
@@ -40,8 +41,9 @@ def get_public_records(wallet_address: str = None):
         api = NODE+'/public_records'
 
     try:
-        resp = http.request("GET", api).json()
-        return resp
+        resp = http.request("GET", api).data.decode('utf8')
+        convert_to_json = json.loads(resp)
+        return convert_to_json
     except:
         return {
             'success': False,
@@ -63,8 +65,9 @@ def buy_sell(username, password, amount: float, method: Literal['BUY', 'SELL'] =
 
     data = json.dumps(data).encode('utf-8')
     try:
-        resp = http.request("POST", NODE+'/buy_sell', headers=headers, body=data).json()
-        return resp
+        resp = http.request("POST", NODE+'/buy_sell', headers=headers, body=data).data.decode('utf8')
+        convert_to_json = json.loads(resp)
+        return convert_to_json
     except Exception as e:
         return {
             "success": False,
@@ -77,8 +80,9 @@ def send_money(data):
     }
     data = json.dumps(data)
     try:
-        resp = http.request("POST", NODE+'/send_money', body=data, headers=headers).json()
-        return resp['message']
+        resp = http.request("POST", NODE+'/send_money', body=data, headers=headers).data.decode('utf8')
+        convert_to_json = json.loads(resp)
+        return convert_to_json['message']
     except:
         return False
 
@@ -102,7 +106,8 @@ def check_valid_account(username: str, password: str):
 
 def get_username_information(username: str) -> dict:
     try:
-        req = http.request("GET", NODE+'/get_information?username={}'.format(username)).json()
+        req = http.request("GET", NODE+'/get_information?username={}'.format(username)).data.decode('utf8')
+        req = json.loads(req)
         if req['success']:
             return req['information']
         else:
@@ -112,7 +117,8 @@ def get_username_information(username: str) -> dict:
 
 def check_username(username: str) -> bool:
     try:
-        resp = http.request("GET", NODE+"/check_username?username={}".format(username)).json()
+        resp = http.request("GET", NODE+"/check_username?username={}".format(username)).data.decode('utf8')
+        resp = json.loads(resp)
         if not resp['success'] and resp['message'] == "username doesnt exist":
             return True
         return False
@@ -138,7 +144,8 @@ def create_user(username: str, password: str):
 
 def get_network_fee() -> float:
     try:
-        resp = http.request("GET", NODE+'/get_network_fee').json()
+        resp = http.request("GET", NODE+'/get_network_fee').data.decode('utf8')
+        resp = json.loads(resp)
         return resp['network_fee']
     except:
         return 0.0
