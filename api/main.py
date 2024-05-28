@@ -38,6 +38,15 @@ def communicate_with_database(query: str):
         mysql.connection.commit()
         cur.close()
 
+# create nonce
+def create_nonce(data: str) -> str:
+    unixtime = int(time.time())
+    add = str(unixtime) + data
+
+    nonce = ''.join(random.choice(add) for _ in range(6))
+
+    return nonce
+
 # create unique transaction_id
 def create_transaction_id(user1: str, user2: str = "") -> str:
     # we get unixtime first
@@ -59,6 +68,26 @@ def return_msg(success: bool = True, message: str = "Unknown Error") -> dict:
 
 def check_account_on_database(username: str, password: str):
     return communicate_with_database(f"SELECT * FROM account WHERE username = '{username}' AND password = '{password}'")
+
+@app.route('/create_nonce', methods=['POST'])
+def creating_nonce():
+    if not request.method == 'POST':
+        return return_msg(
+            success=False,
+            message="Method accepts POST only"
+        )
+    
+    data = request.get_json()
+    username = data.get('username')
+    password = data.get('password')
+    transaction_id = data.get('transaction_id')
+
+    if not username or not password or transaction_id:
+        return return_msg(
+            success=False,
+            message="Payload Error."
+        )
+    
 
 # deposit
 @app.route('/deposit', methods=['POST'])
@@ -149,6 +178,7 @@ def public_records_wallet_address(wallet_address):
             "public_records": records_list
         }
     })
+
 # showing all transaction / public records.
 @app.route('/public_records', methods=['GET'])
 def public_records():
@@ -248,6 +278,7 @@ def buy_sell():
             success=False,
             message="Username/Password Incorrect"
         )
+    
 # get transaction information
 @app.route('/transaction_information/<transaction_id>', methods=['GET'])
 def transaction_information(transaction_id):
@@ -433,4 +464,4 @@ def home():
     return "API for SimpleCoin Project"
 
 if __name__ == '__main__':
-    app.run(host='127.0.0.1', debug=True, port='5000')
+    app.run(host='0.0.0.0', debug=True, port='5000')
