@@ -11,7 +11,28 @@ NODE = get_node()
 timeout = urllib3.Timeout(total=5)
 http = urllib3.PoolManager(timeout=timeout)
 
-def deposit(username: str, password: str, amount: float, wallet):
+def get_nonce(username: str, password: str) -> str:
+    headers = {
+        "Content-Type": "application/json"
+    }
+
+    data = {
+        "username": username,
+        "password": password
+    }
+
+    data = json.dumps(data).encode('utf8')
+    try:
+        resp = http.request("POST", NODE+"/create_nonce", headers=headers, body=data).data.decode('utf8')
+        convert_to_json = json.loads(resp)
+        return convert_to_json
+    except:
+        return {
+            'success': False,
+            'message': 'Failed create nonce.'
+        }
+    
+def deposit(username: str, password: str, amount: float, wallet, nonce: str):
     headers = {
         "Content-Type": "application/json"
     }
@@ -20,7 +41,8 @@ def deposit(username: str, password: str, amount: float, wallet):
         "username": username,
         "password": password,
         "amount": amount,
-        "wallet": wallet
+        "wallet": wallet,
+        "nonce": nonce
     }
 
     data = json.dumps(data).encode('utf-8')
@@ -50,7 +72,7 @@ def get_public_records(wallet_address: str = None):
             'message': 'Failed to get public records.'
         }
 
-def buy_sell(username, password, amount: float, method: Literal['BUY', 'SELL'] = "BUY") -> json:
+def buy_sell(username, password, amount: float, method: Literal['BUY', 'SELL'] = "BUY", nonce: str = "0") -> json:
     method = method.lower()
     headers = {
         "Content-Type": "application/json"
@@ -60,7 +82,8 @@ def buy_sell(username, password, amount: float, method: Literal['BUY', 'SELL'] =
         "username": username,
         "password": password,
         "method": method,
-        "amount": amount
+        "amount": amount,
+        "nonce": nonce
     }
 
     data = json.dumps(data).encode('utf-8')

@@ -180,6 +180,13 @@ class MainWindow(QMainWindow):
         self.init_list_widget()
         self.init_single_slot()
 
+    def _get_nonce(self, username, password) -> str:
+        try:
+            nonce = request_api.get_nonce(username, password)
+            return nonce['message']
+        except:
+            return False
+        
     # deposit
     def _deposit(self):
         amount_text = self.ui.amount_deposit.text()
@@ -190,7 +197,11 @@ class MainWindow(QMainWindow):
         password = self.show_dialog('input')
         if password:
             amount = float(amount_text)
-            deposit = request_api.deposit(self.username, password, amount, wallet_selected)
+            nonce = self._get_nonce(self.username, password)
+            if not nonce:
+                self.show_dialog(type='critical', title="Failed input password", message="Failed to get nonce")
+                return
+            deposit = request_api.deposit(self.username, password, amount, wallet_selected, nonce)
             if deposit:
                 self.show_dialog('information', title="Deposit success", message=f"Deposit {amount}$ Success to your account.")
                 self._set_information()
@@ -304,8 +315,11 @@ class MainWindow(QMainWindow):
         amount = float(amount)
         password = self.show_dialog(type='input')
         if password:
-            
-            buy_sell = request_api.buy_sell(self.username, password, amount, method=method)
+            nonce = self._get_nonce(self.username, password)
+            if not nonce:
+                self.show_dialog(type='critical', title="Failed input password", message="Failed to get nonce")
+                return
+            buy_sell = request_api.buy_sell(self.username, password, amount, method=method, nonce=nonce)
             if buy_sell['success']:
                 if method == 'BUY':
                     message_text = f"Success buying {amount}$SPC Worth Of SimpleCoin.\n\nMore Details : {NODE}/{buy_sell['information']['transaction_id']}"
@@ -450,14 +464,20 @@ class MainWindow(QMainWindow):
             self.show_dialog("warning", title="Input password error", message="Input password error!")
 
     def _send_money(self, password: str, wallet_tujuan: str, amount: float, note: str = ""):
+        nonce = self._get_nonce(self.username, password)
+        if not nonce:
+            self.show_dialog(type='critical', title="Failed input password", message="Failed to get nonce")
+            return
         data = {
             "username": self.username,
             "password": password,
             "from_wallet": self.wallet_number,
             "to_wallet": wallet_tujuan,
             "note": note,
-            "amount": amount
+            "amount": amount,
+            "nonce": nonce
         }
+
         send_money = request_api.send_money(data)
         if send_money:
             if 'information' in send_money:

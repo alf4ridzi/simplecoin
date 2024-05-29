@@ -38,12 +38,36 @@ def communicate_with_database(query: str):
         mysql.connection.commit()
         cur.close()
 
+# delete nonce
+def clear_nonce(username: str):
+    update_nonce = communicate_with_database(f"UPDATE account SET nonce = '0' WHERE username = '{username}'")
+
+# check nonce is match
+def is_nonce_match(nonce: str, username: str):
+    if communicate_with_database(f"SELECT nonce FROM account WHERE username = '{username}'")[0] == nonce:
+        return True
+    return False
+
+# add nonce to public records
+def add_nonce(transaction_id, nonce):
+    update_nonce = communicate_with_database(f"INSERT INTO nonce (transaction_id, nonce) VALUES ('{transaction_id}', '{nonce}')")
+
+# check nonce in database
+def is_nonce_on_database(nonce) -> bool:
+    if communicate_with_database(f"SELECT nonce FROM nonce WHERE nonce = '{nonce}'"):
+        return True
+    return False
+
 # create nonce
-def create_nonce(data: str) -> str:
+def create_nonce(username: str) -> str:
+    # get unix time
     unixtime = int(time.time())
-    add = str(unixtime) + data
+    add = str(unixtime) + username
 
     nonce = ''.join(random.choice(add) for _ in range(6))
+
+    # update nonce in account
+    update_nonce = communicate_with_database(f"UPDATE account SET nonce = '{nonce}' WHERE username = '{username}'")
 
     return nonce
 
@@ -80,14 +104,32 @@ def creating_nonce():
     data = request.get_json()
     username = data.get('username')
     password = data.get('password')
-    transaction_id = data.get('transaction_id')
 
-    if not username or not password or transaction_id:
+    if not username or not password:
         return return_msg(
             success=False,
             message="Payload Error."
         )
     
+    password = encrypt.hash_password_md5(password)
+    if check_account_on_database(username, password):
+        nonce = create_nonce(username)
+        return return_msg(
+            success=True,
+            message=nonce
+        )
+    
+    else:
+        return return_msg(
+            success=False,
+            message="Username or password is incorrect."
+        )
+    
+
+# add transaction to pending
+# def pending_transaction(transaction_id: str, method: str, from_wallet: str, to_wallet: str, note: str, status = "PENDING", amount: float = 0.0):
+#     # update public records
+#     update_public_records = communicate_with_database(f"INSERT INTO public_records (transaction_id, method, from_wallet, to_wallet, note, amount, fee, status) VALUES ('{transaction_id}', '{method}', '{from_wallet}', '{to_wallet}', '{note}', '{amount}', '{status}')")
 
 # deposit
 @app.route('/deposit', methods=['POST'])
@@ -103,26 +145,44 @@ def deposit():
     password = data.get('password')
     amount = data.get('amount')
     wallet = data.get('wallet')
+    nonce = data.get('nonce')
 
-    if not username and not password and not amount and not wallet:
+    if not username and not password and not amount and not wallet and not nonce:
         return return_msg(
             success=False,
             message="Payload Error."
         )
     
+    
     # check username & password
     password = encrypt.hash_password_md5(password)
     if check_account_on_database(username, password):
+        if not is_nonce_match(nonce, username):
+            clear_nonce(username)
+            return return_msg(
+                success=False,
+                message="Nonce not match"
+            )
+        
+        if is_nonce_on_database(nonce):
+            clear_nonce(username)
+            return return_msg(
+                success=False,
+                message="Nonce already used"
+            )
+    
         transaction_id = create_transaction_id(username)
         amount = float(amount)
         # get wallet address
         wallet_address = communicate_with_database(f"SELECT wallet_number FROM account WHERE username = '{username}' AND password = '{password}'")[0]
         # get current fiat balance
-        fiat_balance = communicate_with_database(f"SELECT fiat_balance FROM account WHERE username = '{username}' AND password = '{password}'")[0]
+        fiat_balance = communicate_with_database(f"SELECT fiat_balance FROM account WHERE username = '{username}' AND password = '{password}'")[0]        
         # edit fiat balance
         add_fiat_balance = communicate_with_database(f"UPDATE account SET fiat_balance = '{fiat_balance + amount}' WHERE username = '{username}' AND password = '{password}'")
         # update public_records
         update_public_records = communicate_with_database(f"INSERT INTO public_records (transaction_id, method, to_wallet, amount) VALUES ('{transaction_id}', 'Deposit {wallet}', '{wallet_address}', '{amount}')")
+        add_nonce(transaction_id, nonce)
+        clear_nonce(username)
         return jsonify({
             "success": True,
             "information": {
@@ -226,13 +286,26 @@ def buy_sell():
     password = data.get('password')
     amount = data.get('amount')
     method = data.get('method')
-    if not username and password and amount and method:
+    nonce = data.get('nonce')
+    if not username and not password and not amount and not method:
         return return_msg(success=False, message="Payload Error.")
-    # username = "alfaridzi"
-    # password = "alfaridzi"
     
     password = encrypt.hash_password_md5(password)
     if check_account_on_database(username, password):
+        if not is_nonce_match(nonce, username):
+            clear_nonce(username)
+            return return_msg(
+                success=False,
+                message="Nonce is not valid."
+            )
+        
+        if is_nonce_on_database(nonce):
+            clear_nonce(username)
+            return return_msg(
+                success=False,
+                message="Nonce already used"
+            )
+        
         generate_transaction_id = create_transaction_id(username)
         # get simplecoin & fiat balance
         
@@ -257,7 +330,8 @@ def buy_sell():
                 update_simplecoin_fiat_balance = communicate_with_database(f"UPDATE account SET balance = {simplecoin_balance - amount}, fiat_balance = {fiat_balance + amount} WHERE username = '{username}' AND password = '{password}'")
                 # update public records 
                 update_public_records = communicate_with_database(f"INSERT INTO public_records (transaction_id, method, to_wallet, amount) VALUES ('{generate_transaction_id}', 'SELL', '{wallet_address}', {amount})")
-            
+            add_nonce(generate_transaction_id, nonce)
+            clear_nonce(username)
             return jsonify({"success": True,
                             "information": {
                                 "transaction_id": generate_transaction_id,
@@ -316,14 +390,26 @@ def send_money():
     fee = FEE
     note = data.get('note')
     amount = amount - fee
-
+    nonce = data.get('nonce')
     if not username and not password and not to_wallet and not from_wallet:
         return return_msg(success=False, message='Payload not valid.')
     
     password = encrypt.hash_password_md5(password)
     # check if username & password is match
     if communicate_with_database(f"SELECT * FROM account WHERE username = '{username}' AND password = '{password}'"):
-        # get user nonce from database
+        if not is_nonce_match(nonce, username):
+            clear_nonce(username)
+            return return_msg(
+                success=False,
+                message="Nonce is not valid."
+            )
+        
+        if is_nonce_on_database(nonce):
+            clear_nonce(username)
+            return return_msg(
+                success=False,
+                message="Nonce already used"
+            )
         
         generate_transaction_id = create_transaction_id(username, user2=to_wallet)
         # mendapatkan balance pengirim & penerima terlebih dahulu
@@ -345,6 +431,8 @@ def send_money():
         update_balance_recipient = communicate_with_database(f"UPDATE account SET balance = {admin_network_balance + fee} WHERE wallet_number = '{WALLET_ADMIN}'")
         # update public records
         update_public_records = communicate_with_database(f"INSERT INTO public_records (transaction_id, method, from_wallet, to_wallet, note, amount, fee) VALUES ('{generate_transaction_id}', 'TRANSFER', '{from_wallet}', '{to_wallet}', '{note}', {amount}, {fee})")
+        add_nonce(generate_transaction_id, nonce)
+        clear_nonce(username)
         return jsonify({
             'success': True,
             'message': {
