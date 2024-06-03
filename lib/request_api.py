@@ -4,11 +4,13 @@
 import urllib3
 import json
 from typing import Literal
+
+import urllib3.util
 from lib.parser_config import get_node
 
 NODE = get_node()
 
-timeout = urllib3.Timeout(total=5)
+timeout = urllib3.util.Timeout(connect=2.0)
 http = urllib3.PoolManager(timeout=timeout)
 
 def get_nonce(username: str, password: str) -> str:
