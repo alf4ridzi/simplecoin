@@ -9,7 +9,8 @@ import lib.create_qrcode as qrcode
 import os
 from lib import request_api, parser_config
 from typing import Literal
-from PyQt6.QtWidgets import QMainWindow, QApplication, QListWidgetItem, QMessageBox, QInputDialog, QLineEdit, QTableWidgetItem, QTableWidget, QComboBox, QVBoxLayout
+from PyQt6.QtWidgets import (QMainWindow, QApplication, QListWidgetItem, QMessageBox, QInputDialog, QLineEdit, QTableWidgetItem, QTableWidget, QComboBox, QVBoxLayout,
+                             QFrame, QLabel, QWidget, QHBoxLayout)
 from PyQt6.QtCore import Qt, QSize
 from PyQt6.QtGui import QIcon, QPixmap, QGuiApplication, QColor
 from PyQt6 import QtGui
@@ -262,8 +263,10 @@ class MainWindow(QMainWindow):
         item.clear()
         recent_transaction_history.clear()
         recent_transaction_history.addItem("Date\t\t\tInformation")
+
         trx_history = request_api.get_public_records(self.wallet_number)
         if trx_history['success']:
+            previous_date = None
             for data in trx_history['information']['public_records']:
                 date = self._format_date(data['date'])
                 amount = data['amount']
@@ -296,13 +299,40 @@ class MainWindow(QMainWindow):
                 if note:
                     note = "| Note : " + note
 
-                item.addItem(f"{date} | {amount_text} {note}")
-                # set the fucking color (i have been search this shit for 3 hours.)
-                item.item(item.count() - 1).setForeground(text_color)
+                # Add a line separator with date if the date changes
+                current_date = date.split()
+                current_date = current_date[0]+'/'+current_date[1]+'/'+current_date[2]
+                if current_date != previous_date:
+                    if previous_date is not None:
+                        # Create a QWidget to hold the date label and line
+                        separator_widget = QWidget()
+                        layout = QHBoxLayout()
+
+                        date_label = QLabel(current_date)
+                        line = QFrame()
+                        line.setFrameShape(QFrame.Shape.HLine)
+                        line.setFrameShadow(QFrame.Shadow.Sunken)
+                        line.setStyleSheet("background-color: #A9A9A9; max-height: 1px;")
+
+                        layout.addWidget(date_label)
+                        layout.addWidget(line)
+                        layout.setStretch(1, 1)  # Make the line stretch
+
+                        separator_widget.setLayout(layout)
+                        separator_item = QListWidgetItem()
+                        separator_item.setSizeHint(separator_widget.sizeHint())
+                        item.addItem(separator_item)
+                        item.setItemWidget(separator_item, separator_widget)
+
+                    previous_date = current_date
+
+                transaction_item = QListWidgetItem(f"{date} | {amount_text} {note}")
+                transaction_item.setForeground(text_color)
+                item.addItem(transaction_item)
 
                 recent_transaction_history.addItem(f"{date}\t\t{amount_text}")
-                recent_transaction_history.item(item.count() - 1).setForeground(text_color)
-                    
+                recent_transaction_history.item(recent_transaction_history.count() - 1).setForeground(text_color)
+                
     # buy simplecoin
     def _buy_sell_simplecoin(self, method: Literal['BUY', 'SELL'] = 'BUY'):
         if method == 'BUY':
