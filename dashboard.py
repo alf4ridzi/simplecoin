@@ -7,11 +7,13 @@ import sys
 import urllib3
 import lib.create_qrcode as qrcode
 import os
+import lib.trx_popup as trx_popup
+import webbrowser
 from lib import request_api, parser_config
 from typing import Literal
 from PyQt6.QtWidgets import (QMainWindow, QApplication, QListWidgetItem, QMessageBox, QInputDialog, QLineEdit, QTableWidgetItem, QTableWidget, QComboBox, QVBoxLayout,
-                             QFrame, QLabel, QWidget, QHBoxLayout)
-from PyQt6.QtCore import Qt, QSize
+                             QFrame, QLabel, QWidget, QHBoxLayout, QDialog)
+from PyQt6.QtCore import Qt, QSize, QUrl
 from PyQt6.QtGui import QIcon, QPixmap, QGuiApplication, QColor
 from PyQt6 import QtGui
 from dashboard_ui import Ui_MainWindow
@@ -209,6 +211,61 @@ class MainWindow(QMainWindow):
             else:
                 self.show_dialog('critical', title="Deposit failed", message=f"Deposit Failed! Please try again.")
     
+    def _web_view(self, url: str):
+        webbrowser.open_new_tab(url)
+
+    def transaction_popup(self, item):
+        data = item.data(Qt.ItemDataRole.UserRole)
+        Dialog = QDialog()
+        self.trx_detail_ui = trx_popup.Ui_Dialog()
+        self.trx_detail_ui.setupUi(Dialog)
+        # title = data["title"]
+        balance = data["balance"]
+        date = data["date"]
+        status = data["status"]
+        tipe = data["tipe"]
+        wallet = data["to_wallet"]
+        fee = str(data["fee"])
+        trx_id = data["trx_id"]
+
+        self.trx_detail_ui.title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.trx_detail_ui.balance_information.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.trx_detail_ui.date_information.setAlignment(Qt.AlignmentFlag.AlignRight)
+        self.trx_detail_ui.status_information.setAlignment(Qt.AlignmentFlag.AlignRight)
+        self.trx_detail_ui.Receipent_information.setAlignment(Qt.AlignmentFlag.AlignRight)
+        self.trx_detail_ui.network_fee.setAlignment(Qt.AlignmentFlag.AlignRight)
+
+        match tipe:
+            case "SELL":
+                self.trx_detail_ui.title.setText("Sell SimpleCoin")
+                self.trx_detail_ui.balance_information.setText(f"- {balance} $SPC")
+            case "BUY":
+                self.trx_detail_ui.title.setText("Buy SimpleCoin")
+                self.trx_detail_ui.balance_information.setText(f"+ {balance} $SPC")
+            case "TRANSFER":
+                self.trx_detail_ui.title.setText("Transfer SimpleCoin")
+                self.trx_detail_ui.balance_information.setText(f"- {balance} $SPC")
+                wallet = data["to_wallet"]
+            case "RECEIVE":
+                self.trx_detail_ui.title.setText("Receive SimpleCoin")
+                self.trx_detail_ui.balance_information.setText(f"+ {balance} $SPC")
+                self.trx_detail_ui.sender_or_receipent.setText("Sender")
+        
+        if "Deposit" in tipe:
+            self.trx_detail_ui.title.setText("Deposit Fiat Dollar")
+            self.trx_detail_ui.balance_information.setText(f"+ {balance} $")
+
+        self.trx_detail_ui.date_information.setText(date)
+        self.trx_detail_ui.status_information.setText(status)
+        self.trx_detail_ui.Receipent_information.setText(wallet)
+        self.trx_detail_ui.network_fee.setText(fee  + " $SPC")
+        self.trx_detail_ui.close_button.clicked.connect(lambda: self.close_popup(Dialog))
+        self.trx_detail_ui.view_details_button.clicked.connect(lambda: self._web_view(trx_id))
+        Dialog.exec()
+
+    def close_popup(self, dialog):
+        dialog.close()
+        
     # update public records
     def _update_public_records(self, wallet_address: str = None):
         table = self.ui.table_publicrecords
@@ -274,6 +331,9 @@ class MainWindow(QMainWindow):
                 from_wallet = data['from_wallet']
                 to_wallet = data['to_wallet']
                 note = data['note']
+                fee = data['fee']
+                trx_id = data['transaction_id']
+                # print(data)
 
                 amount_text = ""
                 text_color = QColor("black")
@@ -290,6 +350,7 @@ class MainWindow(QMainWindow):
                 elif method == "TRANSFER" and from_wallet != self.wallet_number:
                     amount_text = f"+{amount}$SPC Receive From {from_wallet}"
                     text_color = QColor("green")
+                    method = "RECEIVE"
                 elif "Deposit" in str(method):
                     amount_text = f"+{amount}$SPC {method} From Wallet {to_wallet}"
                     text_color = QColor("green")
@@ -309,6 +370,7 @@ class MainWindow(QMainWindow):
                         layout = QHBoxLayout()
 
                         date_label = QLabel(current_date)
+                        date_label.setStyleSheet("color: black;")  # Set the date text color to black
                         line = QFrame()
                         line.setFrameShape(QFrame.Shape.HLine)
                         line.setFrameShadow(QFrame.Shadow.Sunken)
@@ -328,10 +390,24 @@ class MainWindow(QMainWindow):
 
                 transaction_item = QListWidgetItem(f"{date} | {amount_text} {note}")
                 transaction_item.setForeground(text_color)
+                transaction_item.setData(Qt.ItemDataRole.UserRole, {
+                    "date": date,
+                    "balance": amount,
+                    "note": note,
+                    "tipe": method,
+                    "wallet": from_wallet,
+                    "to_wallet": to_wallet,
+                    "status": "completed",
+                    "fee": fee,
+                    "trx_id": NODE +  "/transaction_information/" + trx_id
+                })
                 item.addItem(transaction_item)
 
                 recent_transaction_history.addItem(f"{date}\t\t{amount_text}")
                 recent_transaction_history.item(recent_transaction_history.count() - 1).setForeground(text_color)
+        
+        # Connect the item clicked signal to the function
+        item.itemClicked.connect(self.transaction_popup)
                 
     # buy simplecoin
     def _buy_sell_simplecoin(self, method: Literal['BUY', 'SELL'] = 'BUY'):
