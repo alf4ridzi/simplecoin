@@ -13,11 +13,11 @@ from lib import request_api, parser_config
 from typing import Literal
 from PyQt6.QtWidgets import (QMainWindow, QApplication, QListWidgetItem, QMessageBox, QInputDialog, QLineEdit, QTableWidgetItem, QTableWidget, QComboBox, QVBoxLayout,
                              QFrame, QLabel, QWidget, QHBoxLayout, QDialog)
-from PyQt6.QtCore import Qt, QSize, QUrl
+from PyQt6.QtCore import Qt, QSize
 from PyQt6.QtGui import QIcon, QPixmap, QGuiApplication, QColor
 from PyQt6 import QtGui
 from dashboard_ui import Ui_MainWindow
-from datetime import datetime
+from datetime import datetime, date
 
 timeout = urllib3.Timeout(total=3)
 http = urllib3.PoolManager(timeout=timeout)
@@ -197,6 +197,7 @@ class MainWindow(QMainWindow):
         if not amount_text:
             self.show_dialog(type='critical', title="Amount error.", message="Please enter amount correctly.")
             return
+        
         password = self.show_dialog('input')
         if password:
             amount = float(amount_text)
@@ -214,8 +215,9 @@ class MainWindow(QMainWindow):
     def _web_view(self, url: str):
         webbrowser.open_new_tab(url)
 
-    def transaction_popup(self, item):
-        data = item.data(Qt.ItemDataRole.UserRole)
+    def transaction_popup(self, item: Qt.ItemDataRole.UserRole = None, data: dict = {}):
+        if not data:
+            data = item.data(Qt.ItemDataRole.UserRole)
         Dialog = QDialog()
         self.trx_detail_ui = trx_popup.Ui_Dialog()
         self.trx_detail_ui.setupUi(Dialog)
@@ -261,6 +263,8 @@ class MainWindow(QMainWindow):
         self.trx_detail_ui.network_fee.setText(fee  + " $SPC")
         self.trx_detail_ui.close_button.clicked.connect(lambda: self.close_popup(Dialog))
         self.trx_detail_ui.view_details_button.clicked.connect(lambda: self._web_view(trx_id))
+        
+        
         Dialog.exec()
 
     def close_popup(self, dialog):
@@ -411,6 +415,7 @@ class MainWindow(QMainWindow):
                 
     # buy simplecoin
     def _buy_sell_simplecoin(self, method: Literal['BUY', 'SELL'] = 'BUY'):
+        data: dict = {}
         if method == 'BUY':
             amount = self.ui.spend_input.text()
         elif method == 'SELL':
@@ -427,11 +432,23 @@ class MainWindow(QMainWindow):
                 return
             buy_sell = request_api.buy_sell(self.username, password, amount, method=method, nonce=nonce)
             if buy_sell['success']:
-                if method == 'BUY':
-                    message_text = f"Success buying {amount}$SPC Worth Of SimpleCoin.\n\nMore Details : {NODE}/{buy_sell['information']['transaction_id']}"
-                elif method == 'SELL':
-                    message_text = f"Success selling {amount}$SPC Worth of {amount} $DOLLAR.\n\nMore Details : {NODE}/{buy_sell['information']['transaction_id']}"
-                self.show_dialog(type='information', title='Success buy SimpleCoin', message=message_text)
+                # date_now = datetime.date.
+                # data['date'] = date_now
+                data_info = buy_sell['information']
+                data['balance'] = data_info['amount']
+                data['tipe'] = data_info['method'].upper()
+                data['to_wallet'] = data_info['wallet']
+                data['trx_id'] = NODE +  "/transaction_information/" + data_info['transaction_id']
+                data['fee'] = self.NETWORK_FEE
+                data['status'] = "completed"
+                data['date'] = date.today().strftime("%d, %A %Y")
+                # if method == 'BUY':
+                #     message_text = f"Success buying {amount}$SPC Worth Of SimpleCoin.\n\nMore Details : {NODE}/{buy_sell['information']['transaction_id']}"
+                # elif method == 'SELL':
+                #     message_text = f"Success selling {amount}$SPC Worth of {amount} $DOLLAR.\n\nMore Details : {NODE}/{buy_sell['information']['transaction_id']}"
+                # self.show_dialog(type='information', title='Success buy SimpleCoin', message=message_text)
+                #self.
+                self.transaction_popup(data = data)
             else:
                 self.show_dialog(type='critical', title="Transaction Failed.", message=f"Failed {'buy' if method == 'BUY' else 'sell'} simplecoin\n{buy_sell['message']}")
         else:
@@ -570,6 +587,7 @@ class MainWindow(QMainWindow):
             self.show_dialog("warning", title="Input password error", message="Input password error!")
 
     def _send_money(self, password: str, wallet_tujuan: str, amount: float, note: str = ""):
+        data: dict = {}
         nonce = self._get_nonce(self.username, password)
         if not nonce:
             self.show_dialog(type='critical', title="Failed input password", message="Failed to get nonce")
@@ -587,7 +605,16 @@ class MainWindow(QMainWindow):
         send_money = request_api.send_money(data)
         if send_money:
             if 'information' in send_money:
-                self.show_dialog("information", title="Transfer success!", message=f"Transfer {amount}$SPC to {wallet_tujuan} Success!.\n\nMore Details : {NODE}/transaction_information/"+send_money['information']['transaction_id'])
+                data_info = send_money['information']
+                data['balance'] = data_info['amount']
+                data['tipe'] = data_info['method'].upper()
+                data['to_wallet'] = data_info['to_wallet']
+                data['trx_id'] = NODE +  "/transaction_information/" + data_info['transaction_id']
+                data['fee'] = self.NETWORK_FEE
+                data['status'] = "completed"
+                data['date'] = date.today().strftime("%d, %A %Y")
+                self.transaction_popup(data=data)
+                #self.show_dialog("information", title="Transfer success!", message=f"Transfer {amount}$SPC to {wallet_tujuan} Success!.\n\nMore Details : {NODE}/transaction_information/"+send_money['information']['transaction_id'])
                 self._set_information()
                 # clear
                 self.ui.wallet_input.clear()
