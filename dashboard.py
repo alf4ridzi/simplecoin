@@ -35,7 +35,7 @@ class MainWindow(QMainWindow):
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
         # set fix width & height
-        self.setFixedSize(980, 700)
+        #self.setFixedSize(980, 700)
         self.ui.welcomeusername.setText(f"Welcome, {self.username}")
         # Set window properties
         self.setWindowIcon(QIcon("./img/simplecoin.png"))
@@ -252,6 +252,7 @@ class MainWindow(QMainWindow):
                 self.trx_detail_ui.title.setText("Receive SimpleCoin")
                 self.trx_detail_ui.balance_information.setText(f"+ {balance} $SPC")
                 self.trx_detail_ui.sender_or_receipent.setText("Sender")
+                wallet = data['wallet']
         
         if "Deposit" in tipe:
             self.trx_detail_ui.title.setText("Deposit Fiat Dollar")
